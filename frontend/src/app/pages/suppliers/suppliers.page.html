@@ -1,0 +1,266 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Proveedores</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreate()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Nuevo
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    <div class="list-toolbar">
+      <ion-searchbar
+        placeholder="Buscar por nombre, RUT o contacto"
+        debounce="0"
+        (ionInput)="onSearchInput($event)"
+      ></ion-searchbar>
+      @if (state$ | async; as state) {
+        @if (state.data) {
+          <p class="result-count">{{ state.data.total }} proveedor(es)</p>
+        }
+      }
+    </div>
+
+    @if (state$ | async; as state) {
+      @if (state.loading) {
+        <div class="state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Cargando proveedores…</p>
+        </div>
+      } @else if (state.error) {
+        <div class="state is-error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <h3>No se pudieron cargar los proveedores</h3>
+          <p>{{ state.error }}</p>
+          <ion-button fill="outline" size="small" (click)="reload()">
+            Reintentar
+          </ion-button>
+        </div>
+      } @else if (state.data && state.data.items.length === 0) {
+        <div class="state">
+          <ion-icon name="business-outline"></ion-icon>
+          <h3>Sin proveedores</h3>
+          <p>No se encontraron proveedores para la búsqueda actual.</p>
+          <ion-button (click)="openCreate()">Crear proveedor</ion-button>
+        </div>
+      } @else if (state.data) {
+        <div class="section">
+          <ion-list lines="full" class="data-list">
+            @for (s of state.data.items; track s.id) {
+              <ion-item [detail]="false">
+                <ion-label>
+                  <h2 class="item-title">{{ s.name }}</h2>
+                  <p class="item-sub">{{ s.contact_name }} · {{ s.email }}</p>
+                  <p class="item-meta">
+                    <span class="mono">RUT {{ s.tax_id }}</span>
+                    @if (s.phone) {
+                      · {{ s.phone }}
+                    }
+                  </p>
+                </ion-label>
+                <div slot="end" class="item-actions">
+                  <ion-badge [color]="s.is_active ? 'success' : 'danger'">
+                    {{ s.is_active ? 'Activo' : 'Inactivo' }}
+                  </ion-badge>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    aria-label="Editar"
+                    (click)="openEdit(s)"
+                  >
+                    <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                  </ion-button>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    color="danger"
+                    aria-label="Desactivar"
+                    (click)="confirmDelete(s)"
+                  >
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+
+        <div class="pager">
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page <= 1"
+            (click)="goToPage(state.data.page - 1)"
+          >
+            <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+          <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page >= state.data.pages"
+            (click)="goToPage(state.data.page + 1)"
+          >
+            Siguiente
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    }
+  </div>
+</ion-content>
+
+<ion-modal [isOpen]="showForm" (ionModalDidDismiss)="closeForm()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ editingId ? 'Editar proveedor' : 'Nuevo proveedor' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeForm()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-input
+                label="Nombre *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="name"
+                [class.ion-invalid]="f.name.invalid && f.name.touched"
+                [class.ion-touched]="f.name.touched"
+              ></ion-input>
+              @if (f.name.touched && f.name.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (f.name.errors?.['minlength']) {
+                    Mínimo 2 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+
+            <div class="form-section">
+              <ion-input
+                label="RUT *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="tax_id"
+                placeholder="12.345.678-9"
+                [class.ion-invalid]="f.tax_id.invalid && f.tax_id.touched"
+                [class.ion-touched]="f.tax_id.touched"
+              ></ion-input>
+              @if (f.tax_id.touched && f.tax_id.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.tax_id.errors?.['required']) {
+                    El RUT es obligatorio.
+                  } @else if (f.tax_id.errors?.['minlength']) {
+                    Mínimo 3 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-input
+                label="Contacto *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="contact_name"
+                [class.ion-invalid]="f.contact_name.invalid && f.contact_name.touched"
+                [class.ion-touched]="f.contact_name.touched"
+              ></ion-input>
+              @if (f.contact_name.touched && f.contact_name.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  El contacto es obligatorio.
+                </ion-note>
+              }
+            </div>
+
+            <div class="form-section">
+              <ion-input
+                label="Teléfono *"
+                labelPlacement="stacked"
+                fill="outline"
+                type="tel"
+                formControlName="phone"
+                [class.ion-invalid]="f.phone.invalid && f.phone.touched"
+                [class.ion-touched]="f.phone.touched"
+              ></ion-input>
+              @if (f.phone.touched && f.phone.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  El teléfono es obligatorio.
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Correo *"
+              labelPlacement="stacked"
+              fill="outline"
+              type="email"
+              formControlName="email"
+              [class.ion-invalid]="f.email.invalid && f.email.touched"
+              [class.ion-touched]="f.email.touched"
+            ></ion-input>
+            @if (f.email.touched && f.email.invalid) {
+              <ion-note color="danger" class="validation-note">
+                @if (f.email.errors?.['required']) {
+                  El correo es obligatorio.
+                } @else {
+                  Ingresa un correo válido.
+                }
+              </ion-note>
+            }
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Dirección"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="address"
+            ></ion-input>
+          </div>
+
+          <ion-item lines="none" class="toggle-row">
+            <ion-toggle formControlName="is_active">Proveedor activo</ion-toggle>
+          </ion-item>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeForm()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                {{ editingId ? 'Guardar cambios' : 'Crear proveedor' }}
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

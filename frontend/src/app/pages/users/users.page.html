@@ -1,0 +1,251 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Usuarios</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreate()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Nuevo
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    <div class="list-toolbar">
+      <ion-searchbar
+        placeholder="Buscar por nombre o correo"
+        debounce="0"
+        (ionInput)="onSearchInput($event)"
+      ></ion-searchbar>
+      @if (state$ | async; as state) {
+        @if (state.data) {
+          <p class="result-count">{{ state.data.total }} usuario(s)</p>
+        }
+      }
+    </div>
+
+    @if (state$ | async; as state) {
+      @if (state.loading) {
+        <div class="state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Cargando usuarios…</p>
+        </div>
+      } @else if (state.forbidden) {
+        <div class="state is-error">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+          <h3>Acceso restringido</h3>
+          <p>Solo los usuarios con rol de administrador pueden gestionar usuarios.</p>
+        </div>
+      } @else if (state.error) {
+        <div class="state is-error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <h3>No se pudieron cargar los usuarios</h3>
+          <p>{{ state.error }}</p>
+          <ion-button fill="outline" size="small" (click)="reload()">
+            Reintentar
+          </ion-button>
+        </div>
+      } @else if (state.data && state.data.items.length === 0) {
+        <div class="state">
+          <ion-icon name="person-circle-outline"></ion-icon>
+          <h3>Sin usuarios</h3>
+          <p>No se encontraron usuarios para la búsqueda actual.</p>
+          <ion-button (click)="openCreate()">Crear usuario</ion-button>
+        </div>
+      } @else if (state.data) {
+        <div class="section">
+          <ion-list lines="full" class="data-list">
+            @for (u of state.data.items; track u.id) {
+              <ion-item [detail]="false">
+                <ion-label>
+                  <h2 class="item-title">{{ u.full_name }}</h2>
+                  <p class="item-sub">{{ u.email }}</p>
+                  <p class="item-meta roles-line">
+                    @if (u.roles && u.roles.length) {
+                      @for (r of u.roles; track r.id) {
+                        <ion-badge color="tertiary">{{ r.name }}</ion-badge>
+                      }
+                    } @else {
+                      Sin roles asignados
+                    }
+                  </p>
+                </ion-label>
+                <div slot="end" class="item-actions">
+                  <ion-badge [color]="u.is_active ? 'success' : 'danger'">
+                    {{ u.is_active ? 'Activo' : 'Inactivo' }}
+                  </ion-badge>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    aria-label="Editar"
+                    (click)="openEdit(u)"
+                  >
+                    <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                  </ion-button>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    color="danger"
+                    aria-label="Desactivar"
+                    (click)="confirmDelete(u)"
+                  >
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+
+        <div class="pager">
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page <= 1"
+            (click)="goToPage(state.data.page - 1)"
+          >
+            <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+          <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page >= state.data.pages"
+            (click)="goToPage(state.data.page + 1)"
+          >
+            Siguiente
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    }
+  </div>
+</ion-content>
+
+<ion-modal [isOpen]="showForm" (ionModalDidDismiss)="closeForm()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ editingId ? 'Editar usuario' : 'Nuevo usuario' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeForm()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-input
+                label="Nombre completo *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="full_name"
+                [class.ion-invalid]="f.full_name.invalid && f.full_name.touched"
+                [class.ion-touched]="f.full_name.touched"
+              ></ion-input>
+              @if (f.full_name.touched && f.full_name.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.full_name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (f.full_name.errors?.['minlength']) {
+                    Mínimo 2 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+
+            <div class="form-section">
+              <ion-input
+                label="Correo *"
+                labelPlacement="stacked"
+                fill="outline"
+                type="email"
+                formControlName="email"
+                [class.ion-invalid]="f.email.invalid && f.email.touched"
+                [class.ion-touched]="f.email.touched"
+              ></ion-input>
+              @if (f.email.touched && f.email.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.email.errors?.['required']) {
+                    El correo es obligatorio.
+                  } @else {
+                    Ingresa un correo válido.
+                  }
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              [label]="editingId ? 'Nueva contraseña (opcional)' : 'Contraseña *'"
+              labelPlacement="stacked"
+              fill="outline"
+              type="password"
+              formControlName="password"
+              placeholder="Mínimo 8 caracteres"
+              [class.ion-invalid]="f.password.invalid && f.password.touched"
+              [class.ion-touched]="f.password.touched"
+            ></ion-input>
+            @if (f.password.touched && f.password.invalid) {
+              <ion-note color="danger" class="validation-note">
+                @if (f.password.errors?.['required']) {
+                  La contraseña es obligatoria.
+                } @else if (f.password.errors?.['minlength']) {
+                  Mínimo 8 caracteres.
+                }
+              </ion-note>
+            }
+            @if (editingId) {
+              <ion-note class="validation-note">
+                Déjala en blanco para conservar la contraseña actual.
+              </ion-note>
+            }
+          </div>
+
+          <div class="form-section">
+            <ion-select
+              label="Roles"
+              labelPlacement="stacked"
+              fill="outline"
+              multiple="true"
+              formControlName="role_ids"
+            >
+              @for (r of roles; track r.id) {
+                <ion-select-option [value]="r.id">{{ r.name }}</ion-select-option>
+              }
+            </ion-select>
+          </div>
+
+          <ion-item lines="none" class="toggle-row">
+            <ion-toggle formControlName="is_active">Usuario activo</ion-toggle>
+          </ion-item>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeForm()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                {{ editingId ? 'Guardar cambios' : 'Crear usuario' }}
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

@@ -1,0 +1,177 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Unidades</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreate()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Nueva
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    <div class="list-toolbar">
+      <ion-searchbar
+        placeholder="Buscar unidad"
+        debounce="0"
+        (ionInput)="onSearchInput($event)"
+      ></ion-searchbar>
+      @if (state$ | async; as state) {
+        @if (state.data) {
+          <p class="result-count">{{ state.data.total }} unidad(es)</p>
+        }
+      }
+    </div>
+
+    @if (state$ | async; as state) {
+      @if (state.loading) {
+        <div class="state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Cargando unidades…</p>
+        </div>
+      } @else if (state.error) {
+        <div class="state is-error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <h3>No se pudieron cargar las unidades</h3>
+          <p>{{ state.error }}</p>
+          <ion-button fill="outline" size="small" (click)="reload()">
+            Reintentar
+          </ion-button>
+        </div>
+      } @else if (state.data && state.data.items.length === 0) {
+        <div class="state">
+          <ion-icon name="resize-outline"></ion-icon>
+          <h3>Sin unidades</h3>
+          <p>No se encontraron unidades para la búsqueda actual.</p>
+          <ion-button (click)="openCreate()">Crear unidad</ion-button>
+        </div>
+      } @else if (state.data) {
+        <div class="section">
+          <ion-list lines="full" class="data-list">
+            @for (u of state.data.items; track u.id) {
+              <ion-item [detail]="false">
+                <ion-label>
+                  <h2 class="item-title">{{ u.name }}</h2>
+                  <p class="item-sub mono">{{ u.symbol }}</p>
+                </ion-label>
+                <div slot="end" class="item-actions">
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    color="danger"
+                    aria-label="Eliminar"
+                    (click)="confirmDelete(u)"
+                  >
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+
+        <div class="pager">
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page <= 1"
+            (click)="goToPage(state.data.page - 1)"
+          >
+            <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+          <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page >= state.data.pages"
+            (click)="goToPage(state.data.page + 1)"
+          >
+            Siguiente
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    }
+  </div>
+</ion-content>
+
+<ion-modal [isOpen]="showForm" (ionModalDidDismiss)="closeForm()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Nueva unidad</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeForm()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-input
+                label="Nombre *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="name"
+                placeholder="Kilogramo"
+                [class.ion-invalid]="f.name.invalid && f.name.touched"
+                [class.ion-touched]="f.name.touched"
+              ></ion-input>
+              @if (f.name.touched && f.name.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (f.name.errors?.['minlength']) {
+                    Mínimo 2 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+
+            <div class="form-section">
+              <ion-input
+                label="Símbolo *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="symbol"
+                placeholder="kg"
+                [class.ion-invalid]="f.symbol.invalid && f.symbol.touched"
+                [class.ion-touched]="f.symbol.touched"
+              ></ion-input>
+              @if (f.symbol.touched && f.symbol.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  El símbolo es obligatorio.
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeForm()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                Crear unidad
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

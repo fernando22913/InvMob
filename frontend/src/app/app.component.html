@@ -1,0 +1,62 @@
+<ion-app>
+  <a class="skip-link" href="#main-content">Saltar al contenido</a>
+
+  @if (auth.user$ | async; as user) {
+    <ion-menu contentId="main-content" type="overlay">
+      <ion-header>
+        <ion-toolbar>
+          <div class="menu-brand">
+            <div class="menu-brand-logo" aria-hidden="true">
+              <ion-icon name="cube-outline"></ion-icon>
+            </div>
+            <div>
+              <p class="menu-brand-name">Inventario</p>
+              <p class="menu-brand-sub">Gestión de inventario</p>
+            </div>
+          </div>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content>
+        <nav aria-label="Navegación principal">
+          <ion-list lines="none">
+            @for (group of navGroups; track group.label) {
+              <div class="menu-group-label">{{ group.label }}</div>
+              @for (item of group.items; track item.url) {
+                <ion-item
+                  [routerLink]="item.url"
+                  routerLinkActive="selected"
+                  [detail]="false"
+                  (click)="closeMenu()"
+                >
+                  <ion-icon slot="start" [name]="item.icon" aria-hidden="true"></ion-icon>
+                  <ion-label>{{ item.label }}</ion-label>
+                </ion-item>
+              }
+            }
+          </ion-list>
+        </nav>
+      </ion-content>
+
+      <ion-footer>
+        <div class="menu-user">
+          <div class="menu-user-avatar" aria-hidden="true">
+            <ion-icon name="person-outline"></ion-icon>
+          </div>
+          <div>
+            <p class="menu-user-name">{{ user.email || 'Sesión activa' }}</p>
+            <p class="menu-user-role">Administrador</p>
+          </div>
+        </div>
+        <ion-toolbar>
+          <ion-button expand="block" fill="clear" color="danger" (click)="logout()">
+            <ion-icon slot="start" name="log-out-outline" aria-hidden="true"></ion-icon>
+            Cerrar sesión
+          </ion-button>
+        </ion-toolbar>
+      </ion-footer>
+    </ion-menu>
+  }
+
+  <ion-router-outlet id="main-content"></ion-router-outlet>
+</ion-app>

@@ -1,0 +1,20 @@
+.toggle-row {
+  --padding-start: 4px;
+  --inner-padding-end: 0;
+}
+
+.roles-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.roles-line ion-badge {
+  font-weight: 600;
+}
+
+ion-spinner {
+  width: 18px;
+  height: 18px;
+}

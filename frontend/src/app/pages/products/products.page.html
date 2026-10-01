@@ -1,0 +1,299 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Productos</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreate()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Nuevo
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    <div class="list-toolbar">
+      <ion-searchbar
+        placeholder="Buscar por nombre o SKU"
+        debounce="0"
+        (ionInput)="onSearchInput($event)"
+      ></ion-searchbar>
+      @if (state$ | async; as state) {
+        @if (state.data) {
+          <p class="result-count">{{ state.data.total }} producto(s)</p>
+        }
+      }
+    </div>
+
+    @if (state$ | async; as state) {
+      @if (state.loading) {
+        <div class="state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Cargando productos…</p>
+        </div>
+      } @else if (state.error) {
+        <div class="state is-error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <h3>No se pudieron cargar los productos</h3>
+          <p>{{ state.error }}</p>
+          <ion-button fill="outline" size="small" (click)="reload()">
+            Reintentar
+          </ion-button>
+        </div>
+      } @else if (state.data && state.data.items.length === 0) {
+        <div class="state">
+          <ion-icon name="cube-outline"></ion-icon>
+          <h3>Sin productos</h3>
+          <p>
+            No se encontraron productos para la búsqueda actual.
+          </p>
+          <ion-button (click)="openCreate()">Crear producto</ion-button>
+        </div>
+      } @else if (state.data) {
+        <div class="section">
+          <ion-list lines="full" class="data-list">
+            @for (p of state.data.items; track p.id) {
+              <ion-item [detail]="false">
+                <ion-label>
+                  <h2 class="item-title">{{ p.name }}</h2>
+                  <p class="sku">{{ p.sku }}</p>
+                  <p class="item-meta prices">
+                    <span>Compra {{ currency(p.purchase_price) }}</span>
+                    <span class="dot">·</span>
+                    <span>Venta {{ currency(p.sale_price) }}</span>
+                  </p>
+                </ion-label>
+                <div slot="end" class="item-actions">
+                  <ion-badge [color]="p.is_active ? 'success' : 'danger'">
+                    {{ p.is_active ? 'Activo' : 'Inactivo' }}
+                  </ion-badge>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    aria-label="Editar"
+                    (click)="openEdit(p)"
+                  >
+                    <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+                  </ion-button>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    color="danger"
+                    aria-label="Desactivar"
+                    (click)="confirmDelete(p)"
+                  >
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+
+        <div class="pager">
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page <= 1"
+            (click)="goToPage(state.data.page - 1)"
+          >
+            <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+          <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page >= state.data.pages"
+            (click)="goToPage(state.data.page + 1)"
+          >
+            Siguiente
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    }
+  </div>
+</ion-content>
+
+<ion-modal [isOpen]="showForm" (ionModalDidDismiss)="closeForm()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>{{ editingId ? 'Editar producto' : 'Nuevo producto' }}</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeForm()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-input
+                label="Nombre *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="name"
+                [class.ion-invalid]="f.name.invalid && f.name.touched"
+                [class.ion-touched]="f.name.touched"
+              ></ion-input>
+              @if (f.name.touched && f.name.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.name.errors?.['required']) {
+                    El nombre es obligatorio.
+                  } @else if (f.name.errors?.['minlength']) {
+                    Mínimo 2 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+
+            <div class="form-section">
+              <ion-input
+                label="SKU *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="sku"
+                [class.ion-invalid]="f.sku.invalid && f.sku.touched"
+                [class.ion-touched]="f.sku.touched"
+              ></ion-input>
+              @if (f.sku.touched && f.sku.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  @if (f.sku.errors?.['required']) {
+                    El SKU es obligatorio.
+                  } @else if (f.sku.errors?.['minlength']) {
+                    Mínimo 3 caracteres.
+                  }
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Descripción"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="description"
+            ></ion-input>
+          </div>
+
+          <div class="form-grid cols-2">
+            <div class="form-section">
+              <ion-select
+                label="Categoría"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="category_id"
+              >
+                <ion-select-option [value]="null">Sin categoría</ion-select-option>
+                @for (c of categories; track c.id) {
+                  <ion-select-option [value]="c.id">{{ c.name }}</ion-select-option>
+                }
+              </ion-select>
+            </div>
+            <div class="form-section">
+              <ion-select
+                label="Unidad"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="unit_id"
+              >
+                <ion-select-option [value]="null">Sin unidad</ion-select-option>
+                @for (u of units; track u.id) {
+                  <ion-select-option [value]="u.id">
+                    {{ u.name }} ({{ u.symbol }})
+                  </ion-select-option>
+                }
+              </ion-select>
+            </div>
+          </div>
+
+          <p class="field-label">Precios y stock</p>
+          <div class="form-grid cols-3">
+            <div class="form-section">
+              <ion-input
+                label="Precio compra *"
+                labelPlacement="stacked"
+                fill="outline"
+                type="number"
+                inputmode="decimal"
+                step="0.01"
+                min="0"
+                formControlName="purchase_price"
+                [class.ion-invalid]="f.purchase_price.invalid && f.purchase_price.touched"
+                [class.ion-touched]="f.purchase_price.touched"
+              ></ion-input>
+              @if (f.purchase_price.touched && f.purchase_price.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  Precio requerido (≥ 0).
+                </ion-note>
+              }
+            </div>
+            <div class="form-section">
+              <ion-input
+                label="Precio venta *"
+                labelPlacement="stacked"
+                fill="outline"
+                type="number"
+                inputmode="decimal"
+                step="0.01"
+                min="0"
+                formControlName="sale_price"
+                [class.ion-invalid]="f.sale_price.invalid && f.sale_price.touched"
+                [class.ion-touched]="f.sale_price.touched"
+              ></ion-input>
+              @if (f.sale_price.touched && f.sale_price.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  Precio requerido (≥ 0).
+                </ion-note>
+              }
+            </div>
+            <div class="form-section">
+              <ion-input
+                label="Stock mínimo"
+                labelPlacement="stacked"
+                fill="outline"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                formControlName="min_stock"
+              ></ion-input>
+              @if (f.min_stock.touched && f.min_stock.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  Debe ser ≥ 0.
+                </ion-note>
+              }
+            </div>
+          </div>
+
+          <ion-item lines="none" class="toggle-row">
+            <ion-toggle formControlName="is_active">Producto activo</ion-toggle>
+          </ion-item>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeForm()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                {{ editingId ? 'Guardar cambios' : 'Crear producto' }}
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

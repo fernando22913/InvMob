@@ -1,0 +1,128 @@
+<ion-content class="login-content" [fullscreen]="true">
+  <div class="login-wrapper">
+    <div class="login-card app-rise">
+      <aside class="login-showcase" aria-hidden="true">
+        <div class="showcase-glow"></div>
+        <div class="showcase-logo">
+          <ion-icon name="cube-outline"></ion-icon>
+        </div>
+        <h2 class="showcase-title">Gestión de inventario clara y rápida</h2>
+        <p class="showcase-text">
+          Administra productos, ventas, compras y bodegas desde un único panel.
+        </p>
+        <ul class="showcase-features">
+          <li>
+            <ion-icon name="file-tray-full-outline"></ion-icon>
+            <span>Stock y movimientos en tiempo real</span>
+          </li>
+          <li>
+            <ion-icon name="cart-outline"></ion-icon>
+            <span>Ventas y compras con control de existencias</span>
+          </li>
+          <li>
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+            <span>Usuarios y roles con permisos</span>
+          </li>
+        </ul>
+        <p class="showcase-foot">Sistema interno · uso restringido</p>
+      </aside>
+
+      <section class="login-panel">
+        <div class="login-brand">
+          <div class="login-logo" aria-hidden="true">
+            <ion-icon name="cube-outline"></ion-icon>
+          </div>
+          <h1>Bienvenido de vuelta</h1>
+          <p>Ingresa con tu cuenta para continuar</p>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+          @if (error) {
+            <div class="login-error" role="alert">
+              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              <span>{{ error }}</span>
+            </div>
+          }
+
+          <div class="form-section">
+            <ion-input
+              label="Correo electrónico"
+              labelPlacement="stacked"
+              fill="outline"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              placeholder="correo@ejemplo.com"
+              formControlName="email"
+              [class.ion-invalid]="email.invalid && email.touched"
+              [class.ion-touched]="email.touched"
+            ></ion-input>
+            @if (email.touched && email.invalid) {
+              <ion-note color="danger" class="validation-note">
+                @if (email.errors?.['required']) {
+                  El correo es obligatorio.
+                } @else if (email.errors?.['email']) {
+                  Ingresa un correo válido.
+                }
+              </ion-note>
+            }
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Contraseña"
+              labelPlacement="stacked"
+              fill="outline"
+              [type]="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              formControlName="password"
+              [class.ion-invalid]="password.invalid && password.touched"
+              [class.ion-touched]="password.touched"
+            >
+              <ion-button
+                slot="end"
+                fill="clear"
+                type="button"
+                class="password-toggle"
+                [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showPassword"
+                (click)="togglePassword()"
+              >
+                <ion-icon
+                  slot="icon-only"
+                  [name]="showPassword ? 'eye-off-outline' : 'eye-outline'"
+                  aria-hidden="true"
+                ></ion-icon>
+              </ion-button>
+            </ion-input>
+            @if (password.touched && password.invalid) {
+              <ion-note color="danger" class="validation-note">
+                @if (password.errors?.['required']) {
+                  La contraseña es obligatoria.
+                } @else if (password.errors?.['minlength']) {
+                  Mínimo 4 caracteres.
+                }
+              </ion-note>
+            }
+          </div>
+
+          <ion-button
+            expand="block"
+            type="submit"
+            [disabled]="loading"
+            class="login-submit"
+          >
+            @if (loading) {
+              <ion-spinner name="crescent" aria-label="Iniciando sesión"></ion-spinner>
+            } @else {
+              Iniciar sesión
+            }
+          </ion-button>
+        </form>
+
+        <p class="login-footnote">Acceso restringido · uso interno</p>
+      </section>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,31 @@
+.sku {
+  margin: 3px 0 0;
+  font-family: var(--app-font-mono);
+  font-size: 0.72rem;
+  color: var(--app-text-muted);
+  letter-spacing: 0.01em;
+}
+
+.prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 14px;
+  max-width: 340px;
+}
+
+.prices .dot {
+  display: none;
+}
+
+.prices span:first-child {
+  color: var(--app-text-muted);
+}
+
+.item-actions ion-badge {
+  margin-right: 6px;
+}
+
+ion-spinner {
+  width: 18px;
+  height: 18px;
+}

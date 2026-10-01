@@ -1,0 +1,153 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Panel</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="app-container">
+    @if (vm$ | async; as vm) {
+      <div class="stats-grid stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><ion-icon name="cube-outline"></ion-icon></div>
+          <div>
+            <p class="stat-value">{{ vm.productCount }}</p>
+            <p class="stat-label">Productos</p>
+          </div>
+        </div>
+        <div class="stat-card is-success">
+          <div class="stat-icon">
+            <ion-icon name="file-tray-full-outline"></ion-icon>
+          </div>
+          <div>
+            <p class="stat-value">{{ vm.totalStock }}</p>
+            <p class="stat-label">Stock total</p>
+          </div>
+        </div>
+        <div class="stat-card" [class.is-warning]="vm.lowStockCount > 0">
+          <div class="stat-icon">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          </div>
+          <div>
+            <p class="stat-value">{{ vm.lowStockCount }}</p>
+            <p class="stat-label">Stock bajo</p>
+          </div>
+        </div>
+        <div class="stat-card is-tertiary">
+          <div class="stat-icon">
+            <ion-icon name="bag-handle-outline"></ion-icon>
+          </div>
+          <div>
+            <p class="stat-value">{{ vm.purchaseCount }}</p>
+            <p class="stat-label">Compras</p>
+          </div>
+        </div>
+        <div class="stat-card is-secondary">
+          <div class="stat-icon"><ion-icon name="cart-outline"></ion-icon></div>
+          <div>
+            <p class="stat-value">{{ vm.saleCount }}</p>
+            <p class="stat-label">Ventas</p>
+          </div>
+        </div>
+      </div>
+
+      @if (vm.lowStockProducts.length > 0) {
+        <div class="section low-stock">
+          <div class="section-header">
+            <div>
+              <p class="section-title">
+                <ion-icon name="alert-circle-outline"></ion-icon>
+                Alerta de stock bajo
+              </p>
+              <p class="section-subtitle">
+                {{ vm.lowStockCount }} producto(s) en o bajo el mínimo
+              </p>
+            </div>
+            <ion-badge color="warning">{{ vm.lowStockCount }}</ion-badge>
+          </div>
+          <ion-list lines="full" class="data-list">
+            @for (row of vm.lowStockProducts; track row.id) {
+              <ion-item>
+                <ion-label>
+                  <h3 class="item-title">{{ row.name }}</h3>
+                  <p class="item-sub">SKU: {{ row.sku }}</p>
+                </ion-label>
+                <ion-badge slot="end" [color]="row.quantity === 0 ? 'danger' : 'warning'">
+                  {{ row.quantity }} / {{ row.minimum }} mín.
+                </ion-badge>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+      }
+
+      <div class="dashboard-panels">
+        <div class="section">
+          <div class="section-header">
+            <p class="section-title">Compras recientes</p>
+            <a routerLink="/purchases" class="link-action">Ver todas</a>
+          </div>
+          @if (vm.recentPurchases.length === 0) {
+            <div class="state">
+              <ion-icon name="bag-handle-outline"></ion-icon>
+              <p>Sin compras registradas.</p>
+            </div>
+          } @else {
+            <ion-list lines="full" class="data-list">
+              @for (p of vm.recentPurchases; track p.id) {
+                <ion-item>
+                  <ion-label>
+                    <h3 class="item-title">
+                      {{ p.reference_number || ('Compra #' + p.id) }}
+                    </h3>
+                    <p class="item-sub">{{ date(p.created_at) }}</p>
+                  </ion-label>
+                  <ion-badge slot="end" color="success">
+                    {{ currency(p.total_amount) }}
+                  </ion-badge>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        </div>
+
+        <div class="section">
+          <div class="section-header">
+            <p class="section-title">Ventas recientes</p>
+            <a routerLink="/sales" class="link-action">Ver todas</a>
+          </div>
+          @if (vm.recentSales.length === 0) {
+            <div class="state">
+              <ion-icon name="cart-outline"></ion-icon>
+              <p>Sin ventas registradas.</p>
+            </div>
+          } @else {
+            <ion-list lines="full" class="data-list">
+              @for (s of vm.recentSales; track s.id) {
+                <ion-item>
+                  <ion-label>
+                    <h3 class="item-title">
+                      {{ s.reference_number || ('Venta #' + s.id) }}
+                    </h3>
+                    <p class="item-sub">{{ date(s.created_at) }}</p>
+                  </ion-label>
+                  <ion-badge slot="end" color="secondary">
+                    {{ currency(s.total_amount) }}
+                  </ion-badge>
+                </ion-item>
+              }
+            </ion-list>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="state">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Cargando panel…</p>
+      </div>
+    }
+  </div>
+</ion-content>

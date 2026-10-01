@@ -1,0 +1,346 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Compras</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreate()">
+        <ion-icon slot="start" name="add-outline"></ion-icon>
+        Nueva compra
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    @if (state$ | async; as state) {
+      @if (state.loading) {
+        <div class="state">
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Cargando compras…</p>
+        </div>
+      } @else if (state.error) {
+        <div class="state is-error">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <h3>No se pudieron cargar las compras</h3>
+          <p>{{ state.error }}</p>
+          <ion-button fill="outline" size="small" (click)="reload()">
+            Reintentar
+          </ion-button>
+        </div>
+      } @else if (state.data && state.data.items.length === 0) {
+        <div class="state">
+          <ion-icon name="bag-handle-outline"></ion-icon>
+          <h3>Sin compras</h3>
+          <p>Aún no hay compras registradas.</p>
+          <ion-button (click)="openCreate()">Registrar compra</ion-button>
+        </div>
+      } @else if (state.data) {
+        <div class="section">
+          <ion-list lines="full" class="data-list">
+            @for (p of state.data.items; track p.id) {
+              <ion-item [detail]="false">
+                <ion-label>
+                  <h2 class="item-title">
+                    {{ p.reference_number || ('Compra #' + p.id) }}
+                  </h2>
+                  <p class="item-sub">
+                    {{ supplierName(p.supplier_id) }} · {{ warehouseName(p.warehouse_id) }}
+                  </p>
+                  <p class="item-sub">{{ date(p.created_at) }}</p>
+                </ion-label>
+                <div slot="end" class="item-actions">
+                  <ion-badge [color]="p.status === 'confirmed' ? 'success' : 'medium'">
+                    {{ currency(p.total_amount) }}
+                  </ion-badge>
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    aria-label="Ver detalle"
+                    (click)="openDetail(p)"
+                  >
+                    <ion-icon slot="icon-only" name="eye-outline"></ion-icon>
+                  </ion-button>
+                </div>
+              </ion-item>
+            }
+          </ion-list>
+        </div>
+
+        <div class="pager">
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page <= 1"
+            (click)="goToPage(state.data.page - 1)"
+          >
+            <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+            Anterior
+          </ion-button>
+          <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+          <ion-button
+            fill="clear"
+            size="small"
+            [disabled]="state.data.page >= state.data.pages"
+            (click)="goToPage(state.data.page + 1)"
+          >
+            Siguiente
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      }
+    }
+  </div>
+</ion-content>
+
+<!-- Create purchase -->
+<ion-modal [isOpen]="showCreate" (ionModalDidDismiss)="closeCreate()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Nueva compra</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeCreate()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <p class="field-label">Datos generales</p>
+          <div class="form-grid cols-3">
+            <div class="form-section">
+              <ion-select
+                label="Proveedor"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="supplier_id"
+              >
+                <ion-select-option [value]="null">Sin proveedor</ion-select-option>
+                @for (s of suppliers; track s.id) {
+                  <ion-select-option [value]="s.id">{{ s.name }}</ion-select-option>
+                }
+              </ion-select>
+            </div>
+            <div class="form-section">
+              <ion-select
+                label="Bodega *"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="warehouse_id"
+                [class.ion-invalid]="f.warehouse_id.invalid && f.warehouse_id.touched"
+                [class.ion-touched]="f.warehouse_id.touched"
+              >
+                <ion-select-option [value]="null">Selecciona una bodega</ion-select-option>
+                @for (w of warehouses; track w.id) {
+                  <ion-select-option [value]="w.id">{{ w.name }}</ion-select-option>
+                }
+              </ion-select>
+              @if (f.warehouse_id.touched && f.warehouse_id.invalid) {
+                <ion-note color="danger" class="validation-note">
+                  La bodega es obligatoria para actualizar el stock.
+                </ion-note>
+              }
+            </div>
+            <div class="form-section">
+              <ion-input
+                label="Referencia"
+                labelPlacement="stacked"
+                fill="outline"
+                formControlName="reference_number"
+                placeholder="PO-001"
+              ></ion-input>
+            </div>
+          </div>
+
+          <div class="items-header">
+            <p class="field-label">Productos</p>
+            <ion-button type="button" size="small" fill="outline" (click)="addItem()">
+              <ion-icon slot="start" name="add-outline"></ion-icon>
+              Agregar línea
+            </ion-button>
+          </div>
+
+          <div formArrayName="items" class="line-items">
+            @for (group of itemGroups; track $index) {
+              <div [formGroupName]="$index" class="line-item">
+                <div class="line-item-head">
+                  <span class="line-index">{{ $index + 1 }}</span>
+                  <ion-select
+                    formControlName="product_id"
+                    fill="outline"
+                    placeholder="Selecciona un producto"
+                    class="line-product"
+                    (ionChange)="onProductChange($index)"
+                  >
+                    <ion-select-option [value]="0">Selecciona un producto</ion-select-option>
+                    @for (p of products; track p.id) {
+                      <ion-select-option [value]="p.id">
+                        {{ p.name }} ({{ p.sku }})
+                      </ion-select-option>
+                    }
+                  </ion-select>
+                  <ion-button
+                    type="button"
+                    fill="clear"
+                    color="danger"
+                    size="small"
+                    aria-label="Quitar línea"
+                    [disabled]="items.length <= 1"
+                    (click)="removeItem($index)"
+                  >
+                    <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+                  </ion-button>
+                </div>
+
+                <div class="line-item-fields">
+                  <div class="line-field">
+                    <span class="field-label">Cantidad</span>
+                    <ion-input
+                      formControlName="quantity"
+                      type="number"
+                      inputmode="numeric"
+                      min="1"
+                      fill="outline"
+                    ></ion-input>
+                  </div>
+                  <div class="line-field">
+                    <span class="field-label">Costo unit.</span>
+                    <ion-input
+                      formControlName="unit_price"
+                      type="number"
+                      inputmode="decimal"
+                      step="0.01"
+                      min="0"
+                      fill="outline"
+                    ></ion-input>
+                  </div>
+                  <div class="line-field line-subtotal">
+                    <span class="field-label">Subtotal</span>
+                    <strong>{{ currency(subtotalFor($index)) }}</strong>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="total-row">
+            <span>Total de la compra</span>
+            <strong>{{ currency(total) }}</strong>
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Notas"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="notes"
+              placeholder="Opcional"
+            ></ion-input>
+          </div>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeCreate()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                Registrar compra
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- Purchase detail -->
+<ion-modal [isOpen]="showDetail" (ionModalDidDismiss)="closeDetail()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Detalle de compra</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeDetail()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        @if (viewingLoading) {
+          <div class="state">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Cargando detalle…</p>
+          </div>
+        } @else if (viewingError) {
+          <div class="state is-error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <p>{{ viewingError }}</p>
+          </div>
+        } @else if (viewing) {
+          <div class="info-grid">
+            <div>
+              <span class="field-label">Referencia</span>
+              <p>{{ viewing.reference_number || '—' }}</p>
+            </div>
+            <div>
+              <span class="field-label">Estado</span>
+              <p>
+                <ion-badge [color]="viewing.status === 'confirmed' ? 'success' : 'medium'">
+                  {{ viewing.status }}
+                </ion-badge>
+              </p>
+            </div>
+            <div>
+              <span class="field-label">Proveedor</span>
+              <p>{{ supplierName(viewing.supplier_id) }}</p>
+            </div>
+            <div>
+              <span class="field-label">Bodega</span>
+              <p>{{ warehouseName(viewing.warehouse_id) }}</p>
+            </div>
+          </div>
+
+          <div class="section">
+            <ion-list lines="full" class="data-list">
+              @for (item of viewing.items; track item.id) {
+                <ion-item>
+                  <ion-label>
+                    <h3 class="item-title">{{ productName(item.product_id) }}</h3>
+                    <p class="item-sub">
+                      {{ item.quantity }} × {{ currency(item.unit_price) }}
+                    </p>
+                  </ion-label>
+                  <ion-note slot="end" class="line-total">
+                    {{ currency(item.subtotal) }}
+                  </ion-note>
+                </ion-item>
+              }
+            </ion-list>
+          </div>
+
+          <div class="total-row">
+            <span>Total</span>
+            <strong>{{ currency(viewing.total_amount) }}</strong>
+          </div>
+
+          @if (viewing.notes) {
+            <div class="form-section">
+              <span class="field-label">Notas</span>
+              <p class="item-sub">{{ viewing.notes }}</p>
+            </div>
+          }
+        }
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

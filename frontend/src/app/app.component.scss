@@ -1,0 +1,24 @@
+// Shell-specific tweaks. Shared patterns live in src/global.scss.
+
+ion-menu ion-toolbar {
+  --padding-start: 0;
+  --padding-end: 0;
+  --min-height: auto;
+}
+
+ion-menu ion-footer {
+  background: transparent;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+ion-menu ion-footer ion-toolbar {
+  --background: transparent;
+  --border-width: 0;
+  --min-height: auto;
+  padding: 6px 10px 12px;
+}
+
+ion-menu ion-footer ion-button[color='danger'] {
+  --color: #fca5a5;
+  --background-hover: rgba(248, 113, 113, 0.14);
+}

@@ -1,0 +1,349 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button aria-label="Abrir menú"></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Inventario</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openAdjust()">
+        <ion-icon slot="start" name="options-outline"></ion-icon>
+        Ajustar
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="app-container">
+    <ion-segment
+      [value]="tab"
+      (ionChange)="onTabChange($event)"
+      class="inv-segment"
+    >
+      <ion-segment-button value="stock">
+        <ion-label>Stock por bodega</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="movements">
+        <ion-label>Movimientos</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    <div class="filters">
+      <ion-select
+        placeholder="Todos los productos"
+        fill="outline"
+        [value]="null"
+        (ionChange)="onProductFilter($event)"
+      >
+        <ion-select-option [value]="null">Todos los productos</ion-select-option>
+        @for (p of products; track p.id) {
+          <ion-select-option [value]="p.id">{{ p.name }}</ion-select-option>
+        }
+      </ion-select>
+      <ion-select
+        placeholder="Todas las bodegas"
+        fill="outline"
+        [value]="null"
+        (ionChange)="onWarehouseFilter($event)"
+      >
+        <ion-select-option [value]="null">Todas las bodegas</ion-select-option>
+        @for (w of warehouses; track w.id) {
+          <ion-select-option [value]="w.id">{{ w.name }}</ion-select-option>
+        }
+      </ion-select>
+      @if (tab === 'movements') {
+        <ion-select
+          placeholder="Todos los tipos"
+          fill="outline"
+          [value]="''"
+          (ionChange)="onTypeFilter($event)"
+        >
+          <ion-select-option value="">Todos los tipos</ion-select-option>
+          @for (t of movementTypes; track t.value) {
+            <ion-select-option [value]="t.value">{{ t.label }}</ion-select-option>
+          }
+        </ion-select>
+      }
+    </div>
+
+    @if (tab === 'stock') {
+      @if (stockState$ | async; as state) {
+        @if (state.loading) {
+          <div class="state">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Cargando stock…</p>
+          </div>
+        } @else if (state.error) {
+          <div class="state is-error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <h3>No se pudo cargar el stock</h3>
+            <p>{{ state.error }}</p>
+            <ion-button fill="outline" size="small" (click)="reload()">
+              Reintentar
+            </ion-button>
+          </div>
+        } @else if (state.data && state.data.items.length === 0) {
+          <div class="state">
+            <ion-icon name="file-tray-full-outline"></ion-icon>
+            <h3>Sin existencias registradas</h3>
+            <p>
+              No hay stock para los filtros seleccionados. Registra compras o
+              aplica un ajuste para generar existencias.
+            </p>
+            <ion-button (click)="openAdjust()">Ajustar stock</ion-button>
+          </div>
+        } @else if (state.data) {
+          <div class="section">
+            <ion-list lines="full" class="data-list">
+              @for (item of state.data.items; track item.id) {
+                <ion-item [detail]="false">
+                  <ion-label>
+                    <h2 class="item-title">{{ productName(item.product_id) }}</h2>
+                    <p class="item-sub">{{ warehouseName(item.warehouse_id) }}</p>
+                    <p class="item-meta">
+                      Stock mínimo:
+                      <span class="mono">{{ item.minimum_stock }}</span>
+                      · Actualizado {{ dateTime(item.updated_at) }}
+                    </p>
+                  </ion-label>
+                  <div slot="end" class="item-actions">
+                    <ion-badge [color]="stockStatus(item).color">
+                      {{ stockStatus(item).label }}
+                    </ion-badge>
+                    <span class="qty mono">{{ item.quantity }}</span>
+                  </div>
+                </ion-item>
+              }
+            </ion-list>
+          </div>
+
+          <div class="pager">
+            <ion-button
+              fill="clear"
+              size="small"
+              [disabled]="state.data.page <= 1"
+              (click)="goToPage(state.data.page - 1, state)"
+            >
+              <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+              Anterior
+            </ion-button>
+            <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+            <ion-button
+              fill="clear"
+              size="small"
+              [disabled]="state.data.page >= state.data.pages"
+              (click)="goToPage(state.data.page + 1, state)"
+            >
+              Siguiente
+              <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+          </div>
+        }
+      }
+    } @else {
+      @if (movementState$ | async; as state) {
+        @if (state.loading) {
+          <div class="state">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Cargando movimientos…</p>
+          </div>
+        } @else if (state.error) {
+          <div class="state is-error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            <h3>No se pudieron cargar los movimientos</h3>
+            <p>{{ state.error }}</p>
+            <ion-button fill="outline" size="small" (click)="reload()">
+              Reintentar
+            </ion-button>
+          </div>
+        } @else if (state.data && state.data.items.length === 0) {
+          <div class="state">
+            <ion-icon name="swap-vertical-outline"></ion-icon>
+            <h3>Sin movimientos</h3>
+            <p>No hay movimientos de inventario para los filtros seleccionados.</p>
+          </div>
+        } @else if (state.data) {
+          <div class="section">
+            <ion-list lines="full" class="data-list">
+              @for (m of state.data.items; track m.id) {
+                <ion-item [detail]="false">
+                  <ion-label>
+                    <h2 class="item-title">{{ productName(m.product_id) }}</h2>
+                    <p class="item-sub">
+                      {{ movementLabel(m.movement_type) }} ·
+                      {{ warehouseName(m.warehouse_id) }}
+                    </p>
+                    <p class="item-meta">
+                      <span class="mono">{{ m.stock_before }}</span>
+                      →
+                      <span class="mono">{{ m.stock_after }}</span>
+                      · {{ dateTime(m.created_at) }}
+                    </p>
+                  </ion-label>
+                  <div slot="end" class="item-actions">
+                    <ion-badge [color]="movementColor(m.movement_type)">
+                      {{ movementLabel(m.movement_type) }}
+                    </ion-badge>
+                    <span
+                      class="mono"
+                      [class.qty-pos]="m.quantity >= 0"
+                      [class.qty-neg]="m.quantity < 0"
+                    >
+                      {{ m.quantity >= 0 ? '+' : '' }}{{ m.quantity }}
+                    </span>
+                  </div>
+                </ion-item>
+              }
+            </ion-list>
+          </div>
+
+          <div class="pager">
+            <ion-button
+              fill="clear"
+              size="small"
+              [disabled]="state.data.page <= 1"
+              (click)="goToPage(state.data.page - 1, state)"
+            >
+              <ion-icon slot="start" name="chevron-back-outline"></ion-icon>
+              Anterior
+            </ion-button>
+            <span>Página {{ state.data.page }} de {{ state.data.pages || 1 }}</span>
+            <ion-button
+              fill="clear"
+              size="small"
+              [disabled]="state.data.page >= state.data.pages"
+              (click)="goToPage(state.data.page + 1, state)"
+            >
+              Siguiente
+              <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+            </ion-button>
+          </div>
+        }
+      }
+    }
+  </div>
+</ion-content>
+
+<!-- Adjustment modal -->
+<ion-modal [isOpen]="showAdjust" (ionModalDidDismiss)="closeAdjust()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Ajustar stock</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closeAdjust()">Cerrar</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      <div class="app-container modal-form">
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate class="form">
+          <div class="form-section">
+            <ion-select
+              label="Producto *"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="product_id"
+              [class.ion-invalid]="f.product_id.invalid && f.product_id.touched"
+              [class.ion-touched]="f.product_id.touched"
+            >
+              <ion-select-option [value]="0">Selecciona un producto</ion-select-option>
+              @for (p of products; track p.id) {
+                <ion-select-option [value]="p.id">
+                  {{ p.name }} ({{ p.sku }})
+                </ion-select-option>
+              }
+            </ion-select>
+            @if (f.product_id.touched && f.product_id.invalid) {
+              <ion-note color="danger" class="validation-note">
+                El producto es obligatorio.
+              </ion-note>
+            }
+          </div>
+
+          <div class="form-section">
+            <ion-select
+              label="Bodega *"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="warehouse_id"
+              [class.ion-invalid]="f.warehouse_id.invalid && f.warehouse_id.touched"
+              [class.ion-touched]="f.warehouse_id.touched"
+            >
+              <ion-select-option [value]="0">Selecciona una bodega</ion-select-option>
+              @for (w of warehouses; track w.id) {
+                <ion-select-option [value]="w.id">{{ w.name }}</ion-select-option>
+              }
+            </ion-select>
+            @if (f.warehouse_id.touched && f.warehouse_id.invalid) {
+              <ion-note color="danger" class="validation-note">
+                La bodega es obligatoria.
+              </ion-note>
+            }
+          </div>
+
+          @if (f.product_id.value && f.warehouse_id.value) {
+            <p class="stock-hint">
+              <ion-icon name="cube-outline"></ion-icon>
+              @if (currentStockLoading) {
+                Consultando stock actual…
+              } @else {
+                Stock actual:
+                <strong class="mono">{{ currentStock ?? 0 }}</strong>
+              }
+            </p>
+          }
+
+          <div class="form-section">
+            <ion-input
+              label="Cantidad (usa negativo para restar) *"
+              labelPlacement="stacked"
+              fill="outline"
+              type="number"
+              inputmode="numeric"
+              formControlName="quantity"
+              [class.ion-invalid]="f.quantity.invalid && f.quantity.touched"
+              [class.ion-touched]="f.quantity.touched"
+            ></ion-input>
+            @if (f.quantity.touched && f.quantity.invalid) {
+              <ion-note color="danger" class="validation-note">
+                @if (f.quantity.errors?.['required']) {
+                  La cantidad es obligatoria.
+                } @else if (f.quantity.errors?.['pattern']) {
+                  Debe ser un número entero (puede ser negativo).
+                }
+              </ion-note>
+            }
+          </div>
+
+          <div class="form-section">
+            <ion-input
+              label="Notas"
+              labelPlacement="stacked"
+              fill="outline"
+              formControlName="notes"
+              placeholder="Motivo del ajuste (opcional)"
+            ></ion-input>
+          </div>
+
+          <div class="form-actions">
+            <ion-button type="button" fill="outline" color="medium" (click)="closeAdjust()">
+              Cancelar
+            </ion-button>
+            <ion-button type="submit" [disabled]="saving">
+              @if (saving) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                Aplicar ajuste
+              }
+            </ion-button>
+          </div>
+        </form>
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>
