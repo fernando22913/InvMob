@@ -2,7 +2,7 @@ import { Request } from "express";
 import { z, ZodTypeAny } from "zod";
 import { ApiError } from "./http";
 
-/** Parse and return a path parameter, mirroring FastAPI's 422 on a bad int. */
+/** Parse and return a path parameter, producing a 422 on a bad int. */
 export function pathId(req: Request, name: string): number {
   const raw = req.params[name];
   const value = Number(raw);
@@ -18,7 +18,7 @@ export function pathId(req: Request, name: string): number {
   return value;
 }
 
-/** Parse request data with a zod schema, producing FastAPI-style 422 details. */
+/** Parse request data with a zod schema, producing 422 details. */
 export function parseOrThrow<S extends ZodTypeAny>(
   schema: S,
   data: unknown,

@@ -2,8 +2,7 @@ import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 
 /**
- * Every page is a standalone component loaded lazily with `loadComponent`
- * (Angular Router requirement from the migration plan).
+ * Every page is a standalone component loaded lazily with `loadComponent`.
  */
 export const routes: Routes = [
   {

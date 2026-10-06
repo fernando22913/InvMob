@@ -1,6 +1,6 @@
 /**
- * Exact 2-decimal money arithmetic (cents as BigInt), mirroring the Python
- * Decimal math used for subtotals and order totals.
+ * Exact 2-decimal money arithmetic (cents as BigInt) used for subtotals and
+ * order totals.
  */
 export function toCents(value: string | number): bigint {
   const n = typeof value === "number" ? value : Number(value);

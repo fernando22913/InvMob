@@ -1,6 +1,5 @@
 /**
- * Build a dynamic UPDATE from only the provided, non-null fields (mirrors the
- * Python services that skip `None` values when applying updates).
+ * Build a dynamic UPDATE from only the provided, non-null fields.
  *
  * Returns null when there is nothing to update; callers then return the current
  * row unchanged.

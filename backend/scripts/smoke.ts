@@ -1,5 +1,5 @@
 /**
- * End-to-end parity smoke test for the Inventario API.
+ * End-to-end smoke test for the Inventario API.
  *
  * Exercises: login, auth/admin enforcement, CRUD, pagination envelope, unique
  * SKU (409), purchase (stock up + movement), sale (stock down + movement),

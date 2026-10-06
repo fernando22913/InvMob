@@ -3,7 +3,7 @@ import { connectionString } from "./config";
 
 export const pool = new Pool({
   connectionString: connectionString(),
-  // pg returns NUMERIC as string by default (serialization parity with FastAPI).
+  // pg returns NUMERIC as string by default.
   // Timestamps become JS Date -> ISO strings on JSON.stringify.
 });
 
@@ -16,8 +16,7 @@ export function query<T extends QueryResultRow = QueryResultRow>(
 
 /**
  * Run `fn` inside a single transaction. Commits on success, rolls back on any
- * thrown error. Mirrors the FastAPI session (BEGIN ... COMMIT / ROLLBACK)
- * behaviour used by every stock-changing operation.
+ * thrown error. Used by every stock-changing operation.
  */
 export async function withTransaction<T>(
   fn: (client: PoolClient) => Promise<T>

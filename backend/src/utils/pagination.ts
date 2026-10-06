@@ -30,8 +30,8 @@ export interface PaginateOptions {
 }
 
 /**
- * Runs the count query and the windowed select, returning the exact envelope
- * used by the FastAPI service: { items, total, page, size, pages }.
+ * Runs the count query and the windowed select, returning the envelope
+ * { items, total, page, size, pages }.
  */
 export async function paginate<T extends QueryResultRow>(
   client: PoolClient,

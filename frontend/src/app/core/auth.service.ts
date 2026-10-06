@@ -76,8 +76,8 @@ export class AuthService {
   }
 
   /**
-   * The backend exposes no `/auth/me`; like the original React context we derive
-   * the user id from the JWT `sub` claim and keep a lightweight user object.
+   * The backend exposes no `/auth/me`; derive the user id from the JWT `sub`
+   * claim and keep a lightweight user object.
    */
   private hydrateUser(token: string | null): void {
     if (!token) {

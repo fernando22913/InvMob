@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Decimal >= 0, accepting a JSON number or numeric string (Pydantic lax mode). */
+/** Decimal >= 0, accepting a JSON number or numeric string. */
 export const decimalNonNegative = z
   .union([z.string(), z.number()])
   .refine((value) => {
@@ -22,6 +22,6 @@ export const nonNegativeIntDefaultZero = z
   .min(0)
   .default(0);
 
-/** Empty string becomes null (mirrors the Pydantic field_validator in customers). */
+/** Empty string becomes null. */
 export const emptyStringToNull = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((v) => (v === "" ? null : v), schema);

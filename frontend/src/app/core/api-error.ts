@@ -5,7 +5,7 @@ export function isForbidden(error: unknown): boolean {
   return error instanceof HttpErrorResponse && error.status === 403;
 }
 
-/** Normalizes an HttpErrorResponse (FastAPI `{detail}`) into a display string. */
+/** Normalizes an HttpErrorResponse into a display string. */
 export function extractApiError(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
     const detail = (error.error as { detail?: unknown } | null)?.detail;

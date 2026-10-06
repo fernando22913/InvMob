@@ -1,8 +1,8 @@
 -- db/init.sql
--- One-time DDL export of the source alembic schema (revisions 0001-0005).
+-- Schema DDL export.
 -- Generated from the live PostgreSQL 16 schema, schema-only, no owner/privileges.
 -- Loaded automatically by the postgres container on first boot of an empty volume.
--- alembic_version is intentionally excluded (no migration toolchain in the target).
+-- Schema-version tracking tables are intentionally excluded.
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
