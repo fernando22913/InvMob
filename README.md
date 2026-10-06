@@ -406,8 +406,3 @@ Una vez agregadas, se podrán referenciar en Markdown, por ejemplo:
   en un emulador Android (inicio de sesión, persistencia de token, navegación, panel y
   los módulos principales).
 - **Base de datos:** PostgreSQL 16 en Docker con esquema cargado desde `db/init.sql`.
-
-## 18. Autor
-
-- **Autor:** _[Nombre del autor / institución — completar]_
-- **Proyecto:** Inventario — Sistema de Gestión de Inventario
