@@ -372,32 +372,7 @@ cd frontend/android
 > Las carpetas `node_modules/`, `dist/`, `www/` y `frontend/android/app/build/` están
 > excluidas en `.gitignore`: no deben subirse al repositorio.
 
-## 16. Evidencia de ejecución (capturas)
-
-Actualmente el repositorio **no incluye capturas de pantalla** (la carpeta `docs/`
-está vacía). Cuando se generen, se recomienda guardarlas en `docs/screenshots/`.
-
-Nombres sugeridos para las capturas (aún pendientes de agregar):
-
-```text
-docs/screenshots/login-web.png
-docs/screenshots/dashboard-web.png
-docs/screenshots/products-web.png
-docs/screenshots/inventory-web.png
-docs/screenshots/sales-web.png
-docs/screenshots/purchases-web.png
-docs/screenshots/login-android.png
-docs/screenshots/dashboard-android.png
-```
-
-Una vez agregadas, se podrán referenciar en Markdown, por ejemplo:
-
-```markdown
-![Panel web](docs/screenshots/dashboard-web.png)
-![Panel Android](docs/screenshots/dashboard-android.png)
-```
-
-## 17. Estado del proyecto
+## 16. Estado del proyecto
 
 - **Backend:** funcional; incluye script de datos iniciales (`npm run seed`) y una prueba
   end-to-end (`npm run smoke`) que se ejecuta contra la API real.
